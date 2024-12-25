@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"os"
-	"strconv"
 	"testing"
-	"time"
 )
 
 func p[T any](v T) *T {
 	return &v
+}
+
+type Request struct {
+	Key   string
+	Value string
 }
 
 func TestFileReaderNext(t *testing.T) {
@@ -23,26 +26,12 @@ func TestFileReaderNext(t *testing.T) {
 			name: "default",
 			expected: []*Request{
 				{
-					Queue:            "queue",
-					BucketId:         12,
-					RoutingKey:       p("rk"),
-					ShardingKey:      p("sk"),
-					DeduplicationKey: p("dk"),
-					Payload:          []byte("qwer"),
-					Metadata: map[string]string{
-						"x-timestamp": strconv.FormatInt(time.Now().UnixNano(), 10),
-					},
+					Key:   "k1",
+					Value: "v1",
 				},
 				{
-					Queue:            "queue",
-					BucketId:         13,
-					RoutingKey:       p("rk"),
-					ShardingKey:      p("sk"),
-					DeduplicationKey: p("dk"),
-					Payload:          []byte("qwer"),
-					Metadata: map[string]string{
-						"x-timestamp": strconv.FormatInt(time.Now().UnixNano(), 10),
-					},
+					Key:   "k2",
+					Value: "v2",
 				},
 			},
 		},
@@ -67,9 +56,9 @@ func TestFileReaderNext(t *testing.T) {
 			p := NewFileReader[Request](
 				context.Background(),
 				FileReaderConfig{
-					p:    1,
-					path: f.Name(),
-					size: 1,
+					P:    1,
+					Path: f.Name(),
+					Size: 1,
 				},
 			)
 

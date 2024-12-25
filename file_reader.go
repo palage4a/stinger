@@ -106,7 +106,7 @@ func (p *FileReader[T]) read() *T {
 
 	r, err := p.reader(p.cfg.Path)
 	if err != nil {
-		fatal(fmt.Errorf("file reader: get reader err: %w", err))
+		panic(fmt.Errorf("file reader: get reader err: %w", err))
 	}
 
 	b, err := r.ReadBytes('\n')
@@ -115,12 +115,12 @@ func (p *FileReader[T]) read() *T {
 			return nil
 		}
 
-		fatal(fmt.Errorf("file reader: read bytes err: %w", err))
+		panic(fmt.Errorf("file reader: read bytes err: %w", err))
 	}
 
 	err = json.Unmarshal(b, &e)
 	if err != nil {
-		fatal(fmt.Errorf("file reader: unmarshal err: %w", err))
+		panic(fmt.Errorf("file reader: unmarshal err: %w", err))
 	}
 
 	return &e

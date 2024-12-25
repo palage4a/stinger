@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+type RequestFaker struct{}
+
+func (f *RequestFaker) Next() *Request {
+	return &Request{
+		Key:   "key",
+		Value: "value",
+	}
+}
+
 func BenchmarkFileWriter_write(b *testing.B) {
 	f, err := os.CreateTemp("", "*")
 	if err != nil {
@@ -18,19 +27,12 @@ func BenchmarkFileWriter_write(b *testing.B) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	rf := NewRequestFaker(&RequestFakerConfig{
-		Queue:       "queue",
-		RkCount:     -1,
-		SkCount:     -1,
-		DkCount:     -1,
-		PayloadSize: 64,
-	})
+	rf := &RequestFaker{}
 
 	p := NewFileWriter[Request](ctx, rf, FileWriterConfig{
-		size: 1, // whatever
-		path: f.Name(),
-	},
-	)
+		Size: 1, // whatever
+		Path: f.Name(),
+	})
 
 	b.ResetTimer()
 

@@ -45,7 +45,7 @@ func NewMetrics() *Metrics {
 
 	m.latency = promauto.NewSummaryVec(prometheus.SummaryOpts{
 		Name:       "latency",
-		Help:       "publish latency",
+		Help:       "request latency",
 		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.95: 0.005, 0.99: 0.001},
 	}, []string{"success"})
 
@@ -58,22 +58,6 @@ func NewMetrics() *Metrics {
 		Name: "responses_total",
 		Help: "total response number (grpc/iproto)",
 	}, []string{"code", "success"})
-
-	m.messages = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "messages_total",
-		Help: "total published messages number (grpc/iproto)",
-	})
-
-	m.consumed = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "consumed_total",
-		Help: "total consumed messages number (grpc/iproto)",
-	})
-
-	m.delivery = promauto.NewSummary(prometheus.SummaryOpts{
-		Name:       "message_delivery",
-		Help:       "message delivery time from publisher to consumers",
-		Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.95: 0.005, 0.99: 0.001},
-	})
 
 	m.sentBytes = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "sent_bytes",
@@ -109,7 +93,7 @@ func (m *Metrics) Requests() int64 {
 
 	err := m.requests.Write(&metric)
 	if err != nil {
-		fatal(err)
+		panic(err)
 	}
 
 	return int64(metric.GetCounter().GetValue())
@@ -117,36 +101,6 @@ func (m *Metrics) Requests() int64 {
 
 func (m *Metrics) IncReq(i int64) {
 	m.requests.Add(float64(i))
-}
-
-func (m *Metrics) Messages() int64 {
-	var metric dto.Metric
-
-	err := m.messages.Write(&metric)
-	if err != nil {
-		fatal(err)
-	}
-
-	return int64(metric.GetCounter().GetValue())
-}
-
-func (m *Metrics) IncMessages(i int64) {
-	m.messages.Add(float64(i))
-}
-
-func (m *Metrics) Consumed() int64 {
-	var metric dto.Metric
-
-	err := m.consumed.Write(&metric)
-	if err != nil {
-		fatal(err)
-	}
-
-	return int64(metric.GetCounter().GetValue())
-}
-
-func (m *Metrics) IncConsumed(i int64) {
-	m.consumed.Add(float64(i))
 }
 
 func (m *Metrics) ObserveRequest(f func() (string, bool, error)) error {
@@ -159,16 +113,12 @@ func (m *Metrics) ObserveRequest(f func() (string, bool, error)) error {
 	return err
 }
 
-func (m *Metrics) ObserveDevliery(i float64) {
-	m.delivery.Observe(i)
-}
-
 func (m *Metrics) SentBytes() uint64 {
 	var metric dto.Metric
 
 	err := m.sentBytes.Write(&metric)
 	if err != nil {
-		fatal(err)
+		panic(err)
 	}
 
 	return uint64(metric.GetGauge().GetValue())
@@ -185,7 +135,7 @@ func (m *Metrics) ReceivedBytes() uint64 {
 
 	err := m.receivedBytes.Write(&metric)
 	if err != nil {
-		fatal(err)
+		panic(err)
 	}
 
 	return uint64(metric.GetGauge().GetValue())
@@ -271,7 +221,7 @@ func (m *Metrics) Responses() []Response {
 
 		err := m.Write(&metric)
 		if err != nil {
-			fatal(err)
+			panic(err)
 		}
 
 		resp := Response{}
@@ -284,7 +234,7 @@ func (m *Metrics) Responses() []Response {
 			case "success":
 				b, err := strconv.ParseBool(l.GetValue())
 				if err != nil {
-					fatal("strconv parse bool err:", err)
+					panic(fmt.Errorf("strconv parse bool err: %s", err))
 				}
 				resp.Success = b
 			}
@@ -299,54 +249,26 @@ func (m *Metrics) Responses() []Response {
 func (m *Metrics) Result() *Result {
 	latency, err := m.Latency()
 	if err != nil {
-		fatal(err)
-	}
-
-	deliveryMetric, err := m.Delivery()
-	if err != nil {
-		fatal(err)
-	}
-
-	deliverySummary := deliveryMetric.GetSummary()
-	sumMessageDelivery := deliverySummary.GetSampleSum()
-	var messageDelivery []*LatencyPercentile
-
-	if sumMessageDelivery > 0 {
-		q1 := deliverySummary.GetQuantile()
-		messageDelivery = make([]*LatencyPercentile, len(q1))
-		for i, q := range q1 {
-			v := time.Duration(q.GetValue())
-			messageDelivery[i] = &LatencyPercentile{
-				true, int(q.GetQuantile() * 100), v,
-			}
-		}
+		panic(err)
 	}
 
 	return &Result{
-		avgMessageDelivery: time.Duration(sumMessageDelivery / float64(len(m.Responses()))),
-		latency:            latency,
-		messageDelivery:    messageDelivery,
-		requests:           m.Requests(),
-		responses:          m.Responses(),
-		messages:           m.Messages(),
-		consumed:           m.Consumed(),
-		duration:           m.duration,
-		sentBytes:          m.SentBytes(),
-		receivedBytes:      m.ReceivedBytes(),
+		latency:       latency,
+		requests:      m.Requests(),
+		responses:     m.Responses(),
+		duration:      m.duration,
+		sentBytes:     m.SentBytes(),
+		receivedBytes: m.ReceivedBytes(),
 	}
 }
 
 type Result struct {
-	avgMessageDelivery time.Duration
-	latency            []LatencyPercentile
-	messageDelivery    []*LatencyPercentile
-	duration           time.Duration
-	requests           int64
-	responses          []Response
-	messages           int64
-	consumed           int64
-	sentBytes          uint64
-	receivedBytes      uint64
+	latency       []LatencyPercentile
+	duration      time.Duration
+	requests      int64
+	responses     []Response
+	sentBytes     uint64
+	receivedBytes uint64
 }
 
 func getSpacer(s string, l int) string {
@@ -361,14 +283,6 @@ func getSpacer(s string, l int) string {
 func (r *Result) Print() {
 	fmt.Println("\nRESULTS:")
 	fmt.Printf("elapsed ....................... %s\n", r.duration)
-
-	for _, p := range r.messageDelivery {
-		fmt.Printf("delivery p(%d) ................ %s\n", p.Percentile, p.Value)
-	}
-
-	if r.consumed > 0 {
-		fmt.Printf("consumed ...................... %d\n", r.consumed)
-	}
 
 	responsesCount := int64(0)
 	errorsCount := int64(0)
@@ -414,12 +328,6 @@ func (r *Result) Print() {
 	fmt.Println("\nCODES:")
 	for _, r := range r.responses {
 		fmt.Printf("%s %s %d\n", r.Code, getSpacer(r.Code, 30), r.Count)
-	}
-
-	if r.messages > 0 {
-		fmt.Println("\nMESSAGES:")
-		fmt.Printf("total ......................... %d\n", r.messages)
-		fmt.Printf("throughput .................... %0.2f %s\n", float64(r.messages)/r.duration.Seconds(), "msg/s")
 	}
 
 	data := r.receivedBytes + r.sentBytes
