@@ -28,11 +28,8 @@ type Metrics struct {
 	// NOTE: enabled introduced as a hack for not observing traffic before test start
 	enabled       bool
 	latency       *prometheus.SummaryVec
-	delivery      prometheus.Summary
 	requests      prometheus.Counter
-	messages      prometheus.Counter
 	responses     *prometheus.CounterVec
-	consumed      prometheus.Counter
 	sentBytes     prometheus.Gauge
 	receivedBytes prometheus.Gauge
 
@@ -192,16 +189,6 @@ func (m *Metrics) Latency() ([]LatencyPercentile, error) {
 	}
 
 	return res, nil
-}
-
-func (m *Metrics) Delivery() (*dto.Metric, error) {
-	var metric dto.Metric
-	err := m.delivery.Write(&metric)
-	if err != nil {
-		return nil, err
-	}
-
-	return &metric, nil
 }
 
 func (m *Metrics) IncResponses(code string, success bool, i int64) {

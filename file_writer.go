@@ -92,6 +92,4 @@ func (p *FileWriter[T]) Next() *T {
 	return nil
 }
 
-func (p *FileWriter[T]) Wait(_ bool) {
-	return
-}
+func (p *FileWriter[T]) Wait(_ bool) {}

@@ -8,10 +8,6 @@ import (
 	"testing"
 )
 
-func p[T any](v T) *T {
-	return &v
-}
-
 type Request struct {
 	Key   string
 	Value string

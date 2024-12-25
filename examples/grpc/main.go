@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
-	_ "net/http/pprof" //nolint:gosec
 	"os"
 	"os/signal"
 	"syscall"
