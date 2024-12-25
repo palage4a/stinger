@@ -6,112 +6,54 @@ import (
 	"time"
 )
 
-type PublishGenerator struct {
+type BufferedFaker[T any] struct {
 	ctx    context.Context
 	cancel context.CancelFunc
-	rf     *RequestFaker
+	f      Generator[T]
 	p      int
-	ch     chan *Request
+	ch     chan T
 }
 
-func NewPublishGenerator(ctx context.Context, rf *RequestFaker, s uint, p int) *PublishGenerator {
+func NewBufferedFaker[T any](ctx context.Context, f Generator[T], s uint, p int) *BufferedFaker[T] {
 	c, cancel := context.WithCancel(ctx)
 
-	return &PublishGenerator{c, cancel, rf, p, make(chan *Request, s)}
+	return &BufferedFaker[T]{c, cancel, f, p, make(chan T, s)}
 }
 
-func (g *PublishGenerator) Generate() {
-	for range g.p {
+func (b *BufferedFaker[T]) Generate() {
+	for range b.p {
 		go func() {
 			for {
 				select {
-				case <-g.ctx.Done():
+				case <-b.ctx.Done():
 					return
-				case g.ch <- g.rf.Next():
+				case b.ch <- b.f.Next():
 				}
 			}
 		}()
 	}
 }
 
-func (g *PublishGenerator) Next() *Request {
-	return <-g.ch
+func (b *BufferedFaker[T]) Next() T {
+	return <-b.ch
 }
 
-func (g *PublishGenerator) Wait(stop bool) {
+func (b *BufferedFaker[T]) Wait(stop bool) {
 	timer := time.NewTicker(1000 * time.Millisecond)
 
 	func() {
 		for range timer.C {
 			select {
-			case <-g.ctx.Done():
+			case <-b.ctx.Done():
 				return
 			default:
 			}
 
-			fmt.Printf("buffer size: %d of %d\n", len(g.ch), cap(g.ch))
-			if len(g.ch) == cap(g.ch) {
+			fmt.Printf("buffer size: %d of %d\n", len(b.ch), cap(b.ch))
+			if len(b.ch) == cap(b.ch) {
 				if stop {
-					g.cancel()
-					close(g.ch)
-				}
-
-				return
-			}
-		}
-	}()
-
-	timer.Stop()
-}
-
-type PublishBatchGenerator struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	rf     *BatchRequestFaker
-	p      int
-	ch     chan []*Request
-}
-
-func NewPublishBatchGenerator(ctx context.Context, rf *BatchRequestFaker, s uint, p int) *PublishBatchGenerator {
-	c, cancel := context.WithCancel(ctx)
-
-	return &PublishBatchGenerator{c, cancel, rf, p, make(chan []*Request, s)}
-}
-
-func (g *PublishBatchGenerator) Generate() {
-	for range g.p {
-		go func() {
-			for {
-				select {
-				case <-g.ctx.Done():
-					return
-				case g.ch <- g.rf.Next():
-				}
-			}
-		}()
-	}
-}
-
-func (g *PublishBatchGenerator) Next() []*Request {
-	return <-g.ch
-}
-
-func (g *PublishBatchGenerator) Wait(stop bool) {
-	timer := time.NewTicker(1000 * time.Millisecond)
-
-	func() {
-		for range timer.C {
-			select {
-			case <-g.ctx.Done():
-				return
-			default:
-			}
-
-			fmt.Printf("buffer size: %d of %d\n", len(g.ch), cap(g.ch))
-			if len(g.ch) == cap(g.ch) {
-				if stop {
-					g.cancel()
-					close(g.ch)
+					b.cancel()
+					close(b.ch)
 				}
 
 				return
