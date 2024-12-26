@@ -128,13 +128,13 @@ func NewFaker() *Faker {
 	return rf
 }
 
-func (rf *Faker) Name() string {
+func (rf *Faker) name() string {
 	return "Ivan"
 }
 
 func (rf *Faker) Next() *pb.HelloRequest {
 	return &pb.HelloRequest{
-		Name: rf.Name(),
+		Name: rf.name(),
 	}
 }
 
