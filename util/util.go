@@ -1,4 +1,4 @@
-package stinger
+package util
 
 import (
 	"io"
@@ -105,7 +105,7 @@ func SplitSlice[T any](s []T, sliceSize int) [][]T {
 	return slices
 }
 
-func observingSizeRead(m *metrics.Metrics, r io.Reader, b []byte) (int, error) {
+func ObservingSizeRead(m *metrics.Metrics, r io.Reader, b []byte) (int, error) {
 	n, err := r.Read(b)
 	if err != nil {
 		return 0, err
@@ -116,7 +116,7 @@ func observingSizeRead(m *metrics.Metrics, r io.Reader, b []byte) (int, error) {
 	return n, err
 }
 
-func observingSizeWrite(m *metrics.Metrics, w io.Writer, b []byte) (int, error) {
+func ObservingSizeWrite(m *metrics.Metrics, w io.Writer, b []byte) (int, error) {
 	n, err := w.Write(b)
 	if err != nil {
 		return 0, err

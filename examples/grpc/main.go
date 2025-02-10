@@ -11,7 +11,9 @@ import (
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 
 	"github.com/palage4a/stinger"
+	sgrpc "github.com/palage4a/stinger/grpc"
 	"github.com/palage4a/stinger/metrics"
+	"github.com/palage4a/stinger/util"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -44,7 +46,7 @@ func main() {
 	m := metrics.New()
 	runners := make([]stinger.Runnable, 0)
 
-	gb := stinger.NewGrpcBencher(m, *concurrencyFlag, 1, *uriFlag)
+	gb := sgrpc.NewGrpcBencher(m, *concurrencyFlag, 1, *uriFlag)
 
 	runner := NewSayHelloBencher(gb, f)
 	runners = append(runners, runner)
@@ -64,11 +66,11 @@ func main() {
 }
 
 type SayHelloBencher struct {
-	*stinger.GrpcBencher
+	*sgrpc.GrpcBencher
 	g stinger.Generator[*pb.HelloRequest]
 }
 
-func NewSayHelloBencher(b *stinger.GrpcBencher, g stinger.Generator[*pb.HelloRequest]) *SayHelloBencher {
+func NewSayHelloBencher(b *sgrpc.GrpcBencher, g stinger.Generator[*pb.HelloRequest]) *SayHelloBencher {
 	return &SayHelloBencher{b, g}
 }
 
@@ -79,13 +81,13 @@ func (b *SayHelloBencher) ActorSetup(ctx context.Context, id int) (stinger.Actor
 	}
 
 	greeters := NewGreeterClient(clients)
-	p := stinger.NewRRContainer(greeters)
+	p := util.NewRRContainer(greeters)
 
 	return &SayHelloActor{p, b.g}, nil
 }
 
 type SayHelloActor struct {
-	p *stinger.RRContainer[pb.GreeterClient]
+	p *util.RRContainer[pb.GreeterClient]
 	g stinger.Generator[*pb.HelloRequest]
 }
 

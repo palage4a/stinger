@@ -1,4 +1,4 @@
-package stinger
+package grpc
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/palage4a/stinger/metrics"
+	"github.com/palage4a/stinger/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -37,9 +38,9 @@ func NewGrpcBencher(m *metrics.Metrics, parallelism int, clients int, uri string
 }
 
 func (b *GrpcBencher) SetUp(_ context.Context) {
-	uris := MultiplySlice(b.uris, b.clients*b.parallelism)
-	Shuffle(uris)
-	b.slices = SplitSlice(uris, b.clients)
+	uris := util.MultiplySlice(b.uris, b.clients*b.parallelism)
+	util.Shuffle(uris)
+	b.slices = util.SplitSlice(uris, b.clients)
 
 	b.m.Enable()
 }
@@ -95,11 +96,11 @@ type SizeObserverNetConn struct {
 }
 
 func (c *SizeObserverNetConn) Read(b []byte) (int, error) {
-	return observingSizeRead(c.m, c.c, b)
+	return util.ObservingSizeRead(c.m, c.c, b)
 }
 
 func (c *SizeObserverNetConn) Write(b []byte) (int, error) {
-	return observingSizeWrite(c.m, c.c, b)
+	return util.ObservingSizeWrite(c.m, c.c, b)
 }
 
 func (c *SizeObserverNetConn) Close() error {
