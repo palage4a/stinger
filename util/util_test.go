@@ -1,4 +1,4 @@
-package stinger
+package util
 
 import (
 	"fmt"

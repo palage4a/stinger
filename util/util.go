@@ -1,10 +1,11 @@
-package stinger
+package util
 
 import (
-	"fmt"
 	"io"
 	"math/rand"
 	"sync"
+
+	"github.com/palage4a/stinger/metrics"
 )
 
 type RRContainer[T any] struct {
@@ -104,23 +105,7 @@ func SplitSlice[T any](s []T, sliceSize int) [][]T {
 	return slices
 }
 
-func ByteCountIEC(b uint64) string {
-	const unit = 1024
-	if b < unit {
-		return fmt.Sprintf("%d B", b)
-	}
-
-	div, exp := uint64(unit), 0
-	for n := b / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-
-	return fmt.Sprintf("%.1f %ciB",
-		float64(b)/float64(div), "KMGTPE"[exp])
-}
-
-func observingSizeRead(m *Metrics, r io.Reader, b []byte) (int, error) {
+func ObservingSizeRead(m *metrics.Metrics, r io.Reader, b []byte) (int, error) {
 	n, err := r.Read(b)
 	if err != nil {
 		return 0, err
@@ -131,7 +116,7 @@ func observingSizeRead(m *Metrics, r io.Reader, b []byte) (int, error) {
 	return n, err
 }
 
-func observingSizeWrite(m *Metrics, w io.Writer, b []byte) (int, error) {
+func ObservingSizeWrite(m *metrics.Metrics, w io.Writer, b []byte) (int, error) {
 	n, err := w.Write(b)
 	if err != nil {
 		return 0, err

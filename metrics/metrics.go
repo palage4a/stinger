@@ -1,4 +1,4 @@
-package stinger
+package metrics
 
 import (
 	"fmt"
@@ -37,7 +37,7 @@ type Metrics struct {
 	duration time.Duration
 }
 
-func NewMetrics() *Metrics {
+func New() *Metrics {
 	m := new(Metrics)
 
 	m.latency = promauto.NewSummaryVec(prometheus.SummaryOpts{
@@ -320,13 +320,29 @@ func (r *Result) Print() {
 	data := r.receivedBytes + r.sentBytes
 	if data > 0 {
 		fmt.Println("\nDATA:")
-		fmt.Printf("sent .......................... %s\n", ByteCountIEC(r.sentBytes))
-		fmt.Printf("received ...................... %s\n", ByteCountIEC(r.receivedBytes))
-		fmt.Printf("total ......................... %s\n", ByteCountIEC(data))
-		fmt.Printf("throughput .................... %s/s\n", ByteCountIEC(uint64(float64(data)/r.duration.Seconds())))
+		fmt.Printf("sent .......................... %s\n", byteCountIEC(r.sentBytes))
+		fmt.Printf("received ...................... %s\n", byteCountIEC(r.receivedBytes))
+		fmt.Printf("total ......................... %s\n", byteCountIEC(data))
+		fmt.Printf("throughput .................... %s/s\n", byteCountIEC(uint64(float64(data)/r.duration.Seconds())))
 	}
 }
 
 func (m *Metrics) Serve() {
 	http.Handle("/metrics", promhttp.Handler())
+}
+
+func byteCountIEC(b uint64) string {
+	const unit = 1024
+	if b < unit {
+		return fmt.Sprintf("%d B", b)
+	}
+
+	div, exp := uint64(unit), 0
+	for n := b / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+
+	return fmt.Sprintf("%.1f %ciB",
+		float64(b)/float64(div), "KMGTPE"[exp])
 }
