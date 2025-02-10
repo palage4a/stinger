@@ -8,6 +8,7 @@ import (
 	"time"
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/palage4a/stinger/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -22,14 +23,14 @@ func init() {
 
 type GrpcBencher struct {
 	uris        []string
-	m           *Metrics
+	m           *metrics.Metrics
 	parallelism int
 	clients     int
 
 	slices [][]string
 }
 
-func NewGrpcBencher(m *Metrics, parallelism int, clients int, uri string) *GrpcBencher {
+func NewGrpcBencher(m *metrics.Metrics, parallelism int, clients int, uri string) *GrpcBencher {
 	uris := strings.Split(uri, ",")
 
 	return &GrpcBencher{uris, m, parallelism, clients, nil}
@@ -59,7 +60,7 @@ func (b *GrpcBencher) CreateClients(ctx context.Context, id int) ([]*grpc.Client
 	return conns, err
 }
 
-func newGrpcClient(_ context.Context, uri string, m *Metrics) (*grpc.ClientConn, error) {
+func newGrpcClient(_ context.Context, uri string, m *metrics.Metrics) (*grpc.ClientConn, error) {
 	return grpc.NewClient(
 		uri,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -73,7 +74,7 @@ func newGrpcClient(_ context.Context, uri string, m *Metrics) (*grpc.ClientConn,
 	)
 }
 
-func NewGrpcConnections(ctx context.Context, uris []string, m *Metrics) ([]*grpc.ClientConn, error) {
+func NewGrpcConnections(ctx context.Context, uris []string, m *metrics.Metrics) ([]*grpc.ClientConn, error) {
 	conns := make([]*grpc.ClientConn, len(uris))
 	for i, u := range uris {
 		// NOTE: make client creation blocking
@@ -90,7 +91,7 @@ func NewGrpcConnections(ctx context.Context, uris []string, m *Metrics) ([]*grpc
 
 type SizeObserverNetConn struct {
 	c net.Conn
-	m *Metrics
+	m *metrics.Metrics
 }
 
 func (c *SizeObserverNetConn) Read(b []byte) (int, error) {
@@ -126,7 +127,7 @@ func (c *SizeObserverNetConn) SetWriteDeadline(t time.Time) error {
 }
 
 // NOTE: very dirty.
-func sizeObservation(m *Metrics) func(context.Context, string) (net.Conn, error) {
+func sizeObservation(m *metrics.Metrics) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
 		c, err := (&net.Dialer{}).DialContext(ctx, "tcp", addr)
 		if err != nil {

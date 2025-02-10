@@ -8,12 +8,14 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/palage4a/stinger/metrics"
 )
 
 var ErrEndOfData = errors.New("end of data")
 
 type Actor interface {
-	Run(*Metrics) error
+	Run(*metrics.Metrics) error
 }
 
 type Runnable interface {
@@ -37,7 +39,7 @@ type BenchmarkConfig struct {
 	Verbose  bool
 }
 
-func Benchmark(ctx context.Context, m *Metrics, cfg BenchmarkConfig, runners ...Runnable) *Result {
+func Benchmark(ctx context.Context, m *metrics.Metrics, cfg BenchmarkConfig, runners ...Runnable) *metrics.Result {
 	runtime.GOMAXPROCS(cfg.Procs)
 
 	wg := &sync.WaitGroup{}

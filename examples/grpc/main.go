@@ -11,12 +11,14 @@ import (
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 
 	"github.com/palage4a/stinger"
+	"github.com/palage4a/stinger/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/jaswdr/faker"
 	mathrand "math/rand"
+
+	"github.com/jaswdr/faker"
 )
 
 var (
@@ -39,7 +41,7 @@ func main() {
 
 	f := NewFaker()
 
-	m := stinger.NewMetrics()
+	m := metrics.New()
 	runners := make([]stinger.Runnable, 0)
 
 	gb := stinger.NewGrpcBencher(m, *concurrencyFlag, 1, *uriFlag)
@@ -87,7 +89,7 @@ type SayHelloActor struct {
 	g stinger.Generator[*pb.HelloRequest]
 }
 
-func (a *SayHelloActor) Run(m *stinger.Metrics) error {
+func (a *SayHelloActor) Run(m *metrics.Metrics) error {
 	req := a.g.Next()
 	if req == nil {
 		return stinger.ErrEndOfData
